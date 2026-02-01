@@ -21,11 +21,11 @@ import (
 
 var (
 	// Default tokens cap
-	MaxTokensCapDefault = 10
+	DefaultTokensCap = 10
 	// Default time for new tokens append
-	NewTokenAppendTimeDefault = time.Duration(10 * time.Second)
-	// Default duration
-	DurationDefault = time.Duration(30 * time.Minute)
+	DefaultTokensAppendDuration = time.Duration(10 * time.Second)
+	// Default time for tokens exist in storage
+	DefaultTokensExist = time.Duration(30 * time.Minute)
 )
 
 type SyncUpdate struct {
@@ -37,6 +37,8 @@ type SyncUpdate struct {
 // Bucket: simple collection of ips with their awailable tokens.
 //
 // Should be implemented by real storage under the hood.
+// 
+// Every Bucket implementation have to be closed after use
 type Bucket interface {
 	// Try to get token and walk through.
 	// If no tokens awailable or error occured while connecting to bucket, returns (false, error).
@@ -58,9 +60,9 @@ type BucketConfigs struct {
 	// Max count of tokens. If <= 0, uses MaxTokensCapDefault
 	Capability int
 	// Time after object will expire. If <= 0, uses DurationDefault
-	Duration time.Duration
+	TokensExist time.Duration
 	// Time after new tokens append. If <= 0, uses NewTokenAppendDefault
-	NewTokenAppendTime time.Duration
+	TokensAppendDuration time.Duration
 }
 
 type RedisBucket struct {
@@ -76,22 +78,22 @@ type RedisBucket struct {
 // Allows to use existing redis connection
 func NewRedisBucketWithClient(cfg BucketConfigs, c *redis.Client) Bucket {
 	if cfg.Capability <= 0 {
-		cfg.Capability = MaxTokensCapDefault
+		cfg.Capability = DefaultTokensCap
 	}
 
-	if cfg.Duration <= 0 {
-		cfg.Duration = DurationDefault
+	if cfg.TokensExist <= 0 {
+		cfg.TokensExist = DefaultTokensExist
 	}
 
-	if cfg.NewTokenAppendTime <= 0 {
-		cfg.NewTokenAppendTime = NewTokenAppendTimeDefault
+	if cfg.TokensAppendDuration <= 0 {
+		cfg.TokensAppendDuration = DefaultTokensAppendDuration
 	}
 
 	return &RedisBucket{
 		core:            c,
 		cap:             cfg.Capability,
-		dur:             cfg.Duration,
-		tokenAppendTime: cfg.NewTokenAppendTime,
+		dur:             cfg.TokensExist,
+		tokenAppendTime: cfg.TokensAppendDuration,
 	}
 }
 
@@ -110,24 +112,7 @@ func NewRedisBucket(cfg BucketConfigs) (Bucket, error) {
 		return nil, err
 	}
 
-	if cfg.Capability <= 0 {
-		cfg.Capability = MaxTokensCapDefault
-	}
-
-	if cfg.Duration <= 0 {
-		cfg.Duration = DurationDefault
-	}
-
-	if cfg.NewTokenAppendTime <= 0 {
-		cfg.NewTokenAppendTime = NewTokenAppendTimeDefault
-	}
-
-	return &RedisBucket{
-		core:            c,
-		cap:             cfg.Capability,
-		dur:             cfg.Duration,
-		tokenAppendTime: cfg.NewTokenAppendTime,
-	}, nil
+	return NewRedisBucketWithClient(cfg, c), nil
 }
 
 // Closes connection to redis
@@ -148,7 +133,7 @@ func (b RedisBucket) Walk(ctx *gin.Context) error {
 	var t time.Time
 	for {
 		err := b.core.Watch(ctx, func(tx *redis.Tx) error {
-			r, err := tx.Get(ctx, "ginratelimiter:"+ip).Result()
+			r, err := tx.Get(ctx, "gincage:"+ip).Result()
 			if err != nil {
 				if !errors.Is(err, redis.Nil) {
 					return err
@@ -204,11 +189,11 @@ func (b RedisBucket) Walk(ctx *gin.Context) error {
 			}
 
 			_, err = tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
-				return pipe.Set(ctx, "ginratelimiter:"+ip, strconv.Itoa(tokens-1)+"|"+t.Format(time.RFC3339), b.dur).Err()
+				return pipe.Set(ctx, "gincage:"+ip, strconv.Itoa(tokens-1)+"|"+t.Format(time.RFC3339), b.dur).Err()
 			})
 
 			return err
-		}, "ginratelimiter:"+ip)
+		}, "gincage:"+ip)
 
 		if err != nil {
 			if !errors.Is(err, redis.TxFailedErr) {
