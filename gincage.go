@@ -6,31 +6,31 @@
 //
 // Basic usage (redis):
 //
-//  router := gin.New(opts...)
-//  bucket, err := gincage.NewRedisBucket(gincage.BucketConfigs{
-// 	 ...
-//  })
-//  if err != nil {
-// 	 return nil
-//  }
-//  limiter := gincage.NewLimiter(
-// 	 ...
-//  )
-//  router.Use(limiter.WalkThrough())
-// 
+//	 router := gin.New(opts...)
+//	 bucket, err := gincage.NewRedisBucket(gincage.BucketConfigs{
+//		 ...
+//	 })
+//	 if err != nil {
+//		 return nil
+//	 }
+//	 limiter := gincage.NewLimiter(
+//		 ...
+//	 )
+//	 router.Use(limiter.WalkThrough())
+//
 // Reuse existing redis client:
-// 
-//  redisClient := redis.NewClient(&redis.Options{
-// 	 ...
-//  })
-//  // use redisClient for you own needs
-//  ...
-//  // and reuse it with gincage
-//  bucket := gincage.NewRedisBucketWithClient(gincage.BucketConfigs{
-// 	...
-// }, redisClient)
+//
+//	 redisClient := redis.NewClient(&redis.Options{
+//		 ...
+//	 })
+//	 // use redisClient for you own needs
+//	 ...
+//	 // and reuse it with gincage
+//	 bucket := gincage.NewRedisBucketWithClient(gincage.BucketConfigs{
+//		...
+//	}, redisClient)
+//
 // ...
-// 
 package gincage
 
 import (

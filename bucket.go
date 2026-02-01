@@ -2,9 +2,9 @@ package gincage
 
 // Bucket implementations shouldnt use any sync primitives to
 // sync underlying core actions because it can help only if
-// package uses in one process.
+// package is used in one process.
 //
-// If we have something like load-balancer we should use
+// For cases when we have something like load balancer we should use
 // underlying sync mechanisms
 
 import (
@@ -32,15 +32,6 @@ type SyncUpdate struct {
 	Object    string
 	Tokens    int
 	Timestamp time.Time
-}
-
-// bucket map structure
-type bmapData struct {
-	// current number of tokens
-	cur int
-
-	// timestamp for calculating new tokens
-	ts time.Time
 }
 
 // Bucket: simple collection of ips with their awailable tokens.
@@ -81,7 +72,7 @@ type RedisBucket struct {
 }
 
 // Implements Bucket interface and allows to use redis as tokens bucket.
-// 
+//
 // Allows to use existing redis connection
 func NewRedisBucketWithClient(cfg BucketConfigs, c *redis.Client) Bucket {
 	if cfg.Capability <= 0 {
@@ -105,7 +96,7 @@ func NewRedisBucketWithClient(cfg BucketConfigs, c *redis.Client) Bucket {
 }
 
 // Implements Bucket interface and allows to use redis as tokens bucket.
-// 
+//
 // Creates new redis client and returns error if it was broken
 func NewRedisBucket(cfg BucketConfigs) (Bucket, error) {
 	if cfg.Network == "" {
