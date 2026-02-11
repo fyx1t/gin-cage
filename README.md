@@ -10,7 +10,7 @@ bucket, err := gincage.NewRedisBucket(gincage.BucketConfigs{
     ...
 })
 if err != nil {
-	return nil
+	return err
 }
 limiter := gincage.NewLimiter(
 	...
