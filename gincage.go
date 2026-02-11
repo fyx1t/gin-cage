@@ -11,7 +11,7 @@
 //		 ...
 //	 })
 //	 if err != nil {
-//		 return nil
+//		 return err
 //	 }
 //	 limiter := gincage.NewLimiter(
 //		 ...
